@@ -1,38 +1,11 @@
 // all coords must be lng/lat
-const pointInPolygon = require('point-in-polygon')
-const fs = require('fs')
-const lineReader = require('line-reader')
+import * as fs from 'fs'
+import * as lineReader from 'line-reader'
 
-const sqlite3 = require('sqlite3')
-const sqlMethods = require('./sql.js')
+import * as sqlite3 from 'sqlite3'
+import * as sqlMethods from './sql'
 
 const NUM_HEADER_COLS = 4
-
-// taken from 
-// https://geodata.myfwc.com/datasets/myfwc::florida-shoreline-1-to-40000-scale/explore?location=27.438860%2C-82.763397%2C10.39
-const FL_BOUNDING_BOX = [[-87.6, 23.97], [-87.6, 31.0],
-[-79.3, 31.0], [-79.3, 23.97],
- [ -87.6,23.97]
-]
-
-function loadFloridaGeoJSON() {
-  const buffer = fs.readFileSync('./fl_geo_json/fl-state.json')
-  const str = buffer.toString()
-  const geojson = JSON.parse(str)
-  return geojson
-}
-
-// shape is an array of points
-function checkPoint(x, y, shape) {
-  return pointInPolygon([x, y], shape)
-}
-
-function checkShapes(x, y, shapes) {
-  // return as soon as we find a shape
-  // don't care about holes
-  return !!shapes.find(shape => checkPoint(x, y, shape[0])) 
-}
-// main()
 
 function parseLatitude(lat_str) {
   lat_str = lat_str.trim()
@@ -48,7 +21,7 @@ function parseLatitude(lat_str) {
 async function loadHURDAT2() {
   let counter = 0
   let curHurricane = null
-  const db = await new sqlite3.Database('./hurdat.db')
+  const db = await new sqlite3.Database('./hurdat2.db')
   lineReader.eachLine('./hurdat2-atl-02052024.txt', async function (line, last) {
     const cols = line.split(',')
     if (counter === 0) {
@@ -72,15 +45,6 @@ async function loadHURDAT2() {
   })
 }
 
-async function main() {
-  const geojson = loadFloridaGeoJSON()
-  const shapes = geojson.features[0].geometry.coordinates
-  const testX = -81.95994574587384
-  const testY = 27.91914332348675
-  console.log("inThere or not: ", checkShapes(testX, testY, shapes))
-}
-
-main()
-
+loadHURDAT2().then(x => console.log(x)).catch(e => console.log(e))
 
 // delete from hurricanes;

@@ -1,5 +1,6 @@
 // 
-/* CREATE TABLE hurricanes 
+/* 
+  CREATE TABLE hurricanes 
   (hurricane_id string primary key, name string);
 */
 
@@ -11,13 +12,13 @@
     record_identifier string, system_status string);
 */
 
-exports.writeHurricane = async function (cyclone_number, hurricane_name, db_conn) {
+export async function writeHurricane(cyclone_number, hurricane_name, db_conn) {
   const sql = `insert into hurricanes (hurricane_id, name) values("${cyclone_number}", "${hurricane_name}")`
   console.log(sql)
   await db_conn.exec(sql)
 }
 
-exports.writeHurricaneData = async function (data, db_conn) {
+export async function writeHurricaneData(data, db_conn) {
   const sql = `insert into hurricane_data
     (date, time, longitude, latitude, wind, hurricane_id, record_identifier, system_status) 
     values("${data.date.trim()}", "${data.time.trim()}", 
