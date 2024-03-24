@@ -1,5 +1,7 @@
+import * as fs from 'fs'
+import * as turf from '@turf/turf'
+import { Feature, Polygon, MultiPolygon } from 'geojson'
 
- import * as turf from 'turf'
 // shape is an array of points
 function loadFloridaGeoJSON() {
   const buffer = fs.readFileSync('./fl_geo_json/fl-state.json')
@@ -15,33 +17,40 @@ const FL_BOUNDING_BOX = [[-87.6, 23.97], [-87.6, 31.0],
 [-79.3, 31.0], [-79.3, 23.97],
  [ -87.6,23.97]
 ]
-function checkPoint(x, y, shape) {
+function checkPoint(x, y, shape: number[][][]) {
 //  return pointInPolygon([x, y], shape)
+  // eyeRadius is approximate width/2 of a hurricane eye
+  const eyeRadius = 0.083
+  const eye = [[
+    [x - eyeRadius, y + eyeRadius],
+    [x + eyeRadius, y + eyeRadius],
+    [x + eyeRadius, y - eyeRadius],
+    [x - eyeRadius, y - eyeRadius],
+    [x - eyeRadius, y + eyeRadius] 
+  ]]
+  console.dir(shape, { depth: null })
+
+  const cycloneCenter: Feature<Polygon> = turf.polygon(eye)
+  const shapePoly: Feature<Polygon> = turf.polygon(shape)
+
+  return !!turf.intersect(cycloneCenter, shapePoly)
+
 }
 
 function checkShapes(x, y, shapes) {
   // return as soon as we find a shape
   // don't care about holes
-  // eyeRadius is approximate width/2 of a hurricane eye
-  const eyeRadius = 0.083
-  const eye = [[
-    x - eyeRadius, y + eyeRadius,
-    x + eyeRadius, y + eyeRadius,
-    x + eyeRadius, y - eyeRadius,
-    x - eyeRadius, y - eyeRadius,
-    x - eyeRadius, y + eyeRadius 
-  ]]
-
-  return !!shapes.find(shape => checkPoint(x, y, shape[0])) 
+  return !!shapes.find(shape => checkPoint(x, y, shape)) 
 }
 // main()
 
 async function findLandfall() {
   const geojson = loadFloridaGeoJSON()
-  const shapes = geojson.features[0].geometry.coordinates
+  const shapes: number[][][] = geojson.features[0].geometry.coordinates
   // 41.1N,  71.7W
-  const testX = -76.6
-  const testY = 25.4
+  // andrew
+  const testX = -80.2
+  const testY = 25.5
   console.log("inThere or not: ", checkShapes(testX, testY, shapes))
 }
 findLandfall()

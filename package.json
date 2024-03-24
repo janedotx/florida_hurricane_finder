@@ -10,11 +10,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@turf/intersect": "^6.5.0",
+    "@turf/turf": "^6.5.0",
+    "@types/node": "^20.11.30",
     "@types/point-in-polygon": "^1.1.5",
     "geojson": "^0.5.0",
     "line-reader": "^0.4.0",
     "point-in-polygon": "^1.1.0",
     "robust-point-in-polygon": "^1.0.3",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.3"
   }
 }
