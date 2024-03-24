@@ -16,7 +16,7 @@ const FL_BOUNDING_BOX = [[-87.6, 23.97], [-87.6, 31.0],
 ]
 
 function loadFloridaGeoJSON() {
-  const buffer = fs.readFileSync('fl_geo_json/fl-state.json')
+  const buffer = fs.readFileSync('./fl_geo_json/fl-state.json')
   const str = buffer.toString()
   const geojson = JSON.parse(str)
   return geojson
@@ -32,15 +32,6 @@ function checkShapes(x, y, shapes) {
   // don't care about holes
   return !!shapes.find(shape => checkPoint(x, y, shape[0])) 
 }
-
-function main() {
-  const geojson = loadFloridaGeoJSON()
-  const shapes = geojson.features[0].geometry.coordinates
-  const testX = -81.95994574587384
-  const testY = 27.91914332348675
-  console.log("inThere or not: ", checkShapes(testX, testY, shapes))
-}
-
 // main()
 
 function parseLatitude(lat_str) {
@@ -62,9 +53,8 @@ async function loadHURDAT2() {
     const cols = line.split(',')
     if (counter === 0) {
       if (cols.length === NUM_HEADER_COLS) {
-        console.log("line: ", line)
         curHurricane = cols[0].trim()
-        await sqlMethods.writeHurricane(cols[1], curHurricane, db)
+        await sqlMethods.writeHurricane(curHurricane, cols[1].trim(), db)
         counter = Number(cols[2].trim())
       }
     } else {
@@ -82,6 +72,15 @@ async function loadHURDAT2() {
   })
 }
 
-loadHURDAT2().then(x => console.log(x)).catch(e => console.log(e))
+async function main() {
+  const geojson = loadFloridaGeoJSON()
+  const shapes = geojson.features[0].geometry.coordinates
+  const testX = -81.95994574587384
+  const testY = 27.91914332348675
+  console.log("inThere or not: ", checkShapes(testX, testY, shapes))
+}
+
+main()
+
 
 // delete from hurricanes;

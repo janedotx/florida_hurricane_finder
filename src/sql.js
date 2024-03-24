@@ -1,6 +1,6 @@
 // 
 /* CREATE TABLE hurricanes 
-  (hurricane_id integer primary key, name string, cyclone_number string);
+  (hurricane_id string primary key, name string);
 */
 
 //hurricane_id is cyclone name
@@ -11,26 +11,23 @@
     record_identifier string, system_status string);
 */
 
-exports.writeHurricane = async function (hurricane_name, cyclone_number, db_conn) {
-  const sql = `insert into hurricanes (name, cyclone_number) values("${hurricane_name.trim()}", "${cyclone_number.trim()}")`
+exports.writeHurricane = async function (cyclone_number, hurricane_name, db_conn) {
+  const sql = `insert into hurricanes (hurricane_id, name) values("${cyclone_number}", "${hurricane_name}")`
   console.log(sql)
   await db_conn.exec(sql)
 }
 
 exports.writeHurricaneData = async function (data, db_conn) {
-//  console.log("data: ", data)
   const sql = `insert into hurricane_data
     (date, time, longitude, latitude, wind, hurricane_id, record_identifier, system_status) 
     values("${data.date.trim()}", "${data.time.trim()}", 
     ${data.longitude}, ${data.latitude}, 
     "${data.wind}", "${data.hurricane_id}",
     "${data.record_identifier}", "${data.system_status}")`
-//  console.log(sql)
-    await db_conn.exec(sql, function(err, result) {
+    await db_conn.exec(sql, function(err, _) {
       if (err) {
-
-        console.log("errorz: ", err)
-        console.log("sql errorz: ", sql)
+        console.log("a catastrophic error: ", err)
+        console.log("the erring sql: ", sql)
       }
     })
 }
