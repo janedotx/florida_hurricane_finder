@@ -32,3 +32,18 @@ export async function writeHurricaneData(data, db_conn) {
       }
     })
 }
+
+export async function getHurricanes(db_conn) {
+  const sql = 'select * from hurricanes;'
+  let results = null
+  await db_conn.all(sql, function(err, result) {
+      if (err) {
+        console.log("a catastrophic error: ", err)
+        console.log("the erring sql: ", sql)
+      } else {
+        console.log(results)
+        results = result
+      }
+    })
+    return results
+}

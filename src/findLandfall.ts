@@ -1,6 +1,8 @@
 import * as fs from 'fs'
 import * as turf from '@turf/turf'
+import * as sqlite3 from 'sqlite3'
 import { Feature, Polygon, MultiPolygon } from 'geojson'
+import { getHurricanes } from './sql'
 
 // shape is an array of points
 function loadFloridaGeoJSON() {
@@ -20,6 +22,7 @@ const FL_BOUNDING_BOX = [[-87.6, 23.97], [-87.6, 31.0],
 function checkPoint(x, y, shape: number[][][]) {
 //  return pointInPolygon([x, y], shape)
   // eyeRadius is approximate width/2 of a hurricane eye
+  // smallest eye of a hurricane is about 10 miles wide, so this is about 5 nautical miles radius
   const eyeRadius = 0.083
   const eye = [[
     [x - eyeRadius, y + eyeRadius],
@@ -28,7 +31,7 @@ function checkPoint(x, y, shape: number[][][]) {
     [x - eyeRadius, y - eyeRadius],
     [x - eyeRadius, y + eyeRadius] 
   ]]
-  console.dir(shape, { depth: null })
+//  console.dir(shape, { depth: null })
 
   const cycloneCenter: Feature<Polygon> = turf.polygon(eye)
   const shapePoly: Feature<Polygon> = turf.polygon(shape)
@@ -49,8 +52,14 @@ async function findLandfall() {
   const shapes: number[][][] = geojson.features[0].geometry.coordinates
   // 41.1N,  71.7W
   // andrew
+  /*
   const testX = -80.2
   const testY = 25.5
   console.log("inThere or not: ", checkShapes(testX, testY, shapes))
+  */
+
+
+  const db_conn = await new sqlite3.Database('../hurdat.db')
+  const hurricanes = await getHurricanes(db_conn)
 }
 findLandfall()
