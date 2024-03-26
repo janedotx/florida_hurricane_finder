@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as turf from '@turf/turf'
 import * as sqlite3 from 'sqlite3'
 import { Feature, Polygon, MultiPolygon } from 'geojson'
-import { getHurricaneData, getHurricanes } from './sql'
+import { getHurricaneData, getHurricanes, getMaxWindSpeed } from './sql'
 
 // shape is an array of points
 function loadFloridaGeoJSON() {
@@ -23,19 +23,18 @@ const FL_BOUNDING_BOX = [[-87.6, 23.97], [-87.6, 31.0],
 // x is latitude, y is longitude
 function checkPoint(x, y, shape: number[][][]) {
 //  return pointInPolygon([x, y], shape)
-  // eyeRadius is approximate width/2 of a hurricane eye
-  // smallest eye of a hurricane is about 10 miles wide, so this is about 5 nautical miles radius
-  const eyeRadius = 0.083
-  const eye = [[
-    [x - eyeRadius, y + eyeRadius],
-    [x + eyeRadius, y + eyeRadius],
-    [x + eyeRadius, y - eyeRadius],
-    [x - eyeRadius, y - eyeRadius],
-    [x - eyeRadius, y + eyeRadius] 
+  // tolerance
+  const toleranceRadius = 0.035
+  const toleranceBox = [[
+    [x - toleranceRadius, y + toleranceRadius],
+    [x + toleranceRadius, y + toleranceRadius],
+    [x + toleranceRadius, y - toleranceRadius],
+    [x - toleranceRadius, y - toleranceRadius],
+    [x - toleranceRadius, y + toleranceRadius] 
   ]]
 //  console.dir(shape, { depth: null })
 
-  const cycloneCenter: Feature<Polygon> = turf.polygon(eye)
+  const cycloneCenter: Feature<Polygon> = turf.polygon(toleranceBox)
   const shapePoly: Feature<Polygon> = turf.polygon(shape)
 
   return !!turf.intersect(cycloneCenter, shapePoly)
@@ -45,17 +44,28 @@ function checkPoint(x, y, shape: number[][][]) {
 function checkShapes(x, y, shapes) {
   // return as soon as we find a shape
   // don't care about holes
-  return !!shapes.find(shape => checkPoint(x, y, shape)) 
+  let shapeFound 
+  return !!shapes.find(shape => {
+    if (checkPoint(x, y, shape)) {
+      shapeFound = shape
+      return true
+    }
+    return false
+  }) 
 }
 // main()
 
 async function checkHurricane(hurricane_id, shapes: number[][][], db_conn: sqlite3.Database) {
   const rows = await getHurricaneData(hurricane_id, db_conn)
-
-  return !!rows.find(row => {
+  const res = rows.find(row => {
     const { longitude, latitude } = row
     return checkShapes(Number(latitude), Number(longitude), shapes)
   })
+  if (res) {
+    console.log('lat: ', res.latitude)
+    console.log('lng: ', res.longitude)
+  }
+  return res
 }
 
 async function findLandfall() {
@@ -81,7 +91,10 @@ async function findLandfall() {
   const promises = hurricanes_1900.map(async (hurricane) => {
     const { hurricane_id } = hurricane 
     const result = await checkHurricane(hurricane_id, shapes, db_conn)
-    if (result) return hurricane
+    if (result) {
+      const maxWindObj = await getMaxWindSpeed(hurricane_id, db_conn)
+      return { hurricane, data_row: result, maxWind: maxWindObj['max(wind)'] }
+    }
     return null
   })
 
@@ -92,17 +105,46 @@ async function findLandfall() {
   return florida_hurricanes
 }
 
+async function writeFloridaHurricanes() {
+  const results = await findLandfall()
+
+  // name, date of landfall, maximum wind speed
+  const lines = results.map(result => {
+    const { hurricane, data_row, maxWind } = result
+    const { date, time } = data_row
+    const dString = String(date)
+    const tString = String(time)
+    const landfallYear = dString.slice(0, 4)
+    const landfallMonth = dString.slice(4, 6)
+    const landfallDay = dString.slice(6, 8)
+    const landfallHour = tString.slice(0, 2)
+    const landfallMin = tString.slice(2, 4)
+    return `${hurricane.hurricane_id},${hurricane.name},${landfallYear}-${landfallMonth}-${landfallDay},${landfallHour}:${landfallMin},${maxWind}`
+  })
+
+  fs.writeFileSync('florida_hurricanes.csv','cyclone_number,name,landfall-YYYY-MM-DD,landfall-HH:MM,wind')
+    fs.writeFileSync('florida_hurricanes.csv', "\n", { encoding:'utf8', flag: 'as+' } )
+
+  lines.forEach(line => {
+    fs.writeFileSync('florida_hurricanes.csv', line + "\n", { encoding:'utf8', flag: 'as+' } )
+  })
+}
+
 //console.log(checkShapes(-80.2, 25.5, shapes))
 
-findLandfall().then(results => console.log(results)).catch(e => console.log(e))
+writeFloridaHurricanes().then(results => console.log(results)).catch(e => console.log(e))
 
 async function wrapper() {
 
   const geojson = loadFloridaGeoJSON()
   const shapes: number[][][] = geojson.features[0].geometry.coordinates
   const db_conn = await new sqlite3.Database('./hurdat.db')
-  const res = await checkHurricane('AL041910', shapes, db_conn)
+  const res = await checkHurricane('AL101959', shapes, db_conn)
+  
   console.log(res)
+
+  const res2 = await getMaxWindSpeed('AL101959', db_conn)
+  console.log('max wind: ', res2['max(wind)'])
 }
 
-//wrapper().then(w => console.log(w)).catch(e => console.log(e))
+// wrapper().then(w => console.log(w)).catch(e => console.log(e))

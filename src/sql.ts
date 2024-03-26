@@ -60,3 +60,17 @@ export async function getHurricaneData(hurricane_id, db_conn) {
 
   }) as unknown as any[]
 }
+
+export async function getMaxWindSpeed(hurricane_id, db_conn) {
+  const sql = `select max(wind) from hurricane_data where hurricane_id="${hurricane_id}";`
+  return new Promise((resolve, reject) => {
+    db_conn.get(sql, function(err, result) {
+          if (err) {
+            reject(err)
+          } else {
+            resolve((result as unknown) as { 'max(wind)': number})
+          }
+        })
+
+  }) 
+}
