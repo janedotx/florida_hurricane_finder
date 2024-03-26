@@ -1,17 +1,15 @@
 import * as fs from 'fs'
 import * as turf from '@turf/turf'
 import * as sqlite3 from 'sqlite3'
-import { Feature, Polygon, MultiPolygon } from 'geojson'
+import { Feature, Polygon } from 'geojson'
 import { getHurricaneData, getHurricanes, getMaxWindSpeed } from './sql'
 
-// shape is an array of points
 function loadFloridaGeoJSON() {
   const buffer = fs.readFileSync('./fl_geo_json/fl-state.json')
   const str = buffer.toString()
   const geojson = JSON.parse(str)
   return geojson
 }
-
 
 // taken from 
 // https://geodata.myfwc.com/datasets/myfwc::florida-shoreline-1-to-40000-scale/explore?location=27.438860%2C-82.763397%2C10.39
@@ -22,8 +20,13 @@ const FL_BOUNDING_BOX = [[-87.6, 23.97], [-87.6, 31.0],
 
 // x is latitude, y is longitude
 function checkPoint(x, y, shape: number[][][]) {
-//  return pointInPolygon([x, y], shape)
-  // tolerance
+  // Tolerance--some of the hurricanes that NOAA deems as making landfall don't seem
+  // to be directly within the geojson boundaries of Florida I found. The center of
+  // the hurricanes doesn't seem to be reported with a lot of precision (only 2-3 
+  // significant figures).
+  // Initially, I looked up the average width of the eye of a hurricane and used that,
+  // but then I caught a few hurricanes that were very close to Florida but
+  // that the NOAA did not consider to have made landfall.
   const toleranceRadius = 0.035
   const toleranceBox = [[
     [x - toleranceRadius, y + toleranceRadius],
@@ -32,13 +35,11 @@ function checkPoint(x, y, shape: number[][][]) {
     [x - toleranceRadius, y - toleranceRadius],
     [x - toleranceRadius, y + toleranceRadius] 
   ]]
-//  console.dir(shape, { depth: null })
 
   const cycloneCenter: Feature<Polygon> = turf.polygon(toleranceBox)
   const shapePoly: Feature<Polygon> = turf.polygon(shape)
 
   return !!turf.intersect(cycloneCenter, shapePoly)
-
 }
 
 function checkShapes(x, y, shapes) {
@@ -71,15 +72,6 @@ async function checkHurricane(hurricane_id, shapes: number[][][], db_conn: sqlit
 async function findLandfall() {
   const geojson = loadFloridaGeoJSON()
   const shapes: number[][][] = geojson.features[0].geometry.coordinates
-  // 41.1N,  71.7W
-  // andrew
-  /*
-  const testX = -80.2
-  const testY = 25.5
-  console.log("inThere or not: ", checkShapes(testX, testY, shapes))
-  */
-
-
   const db_conn = await new sqlite3.Database('./hurdat.db')
   const hurricanes: { hurricane_id: string, name: string }[] = await getHurricanes(db_conn) 
   const hurricanes_1900 = hurricanes.filter(hurricane => {

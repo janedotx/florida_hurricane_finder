@@ -1,15 +1,11 @@
 // 
 /* 
-  CREATE TABLE hurricanes 
+  'CREATE TABLE hurricanes 
   (hurricane_id string primary key, name string);
-*/
-
-//hurricane_id is cyclone name
-/*
   CREATE TABLE hurricane_data(date string, time string, 
     longitude number, latitude number, wind number, 
     hurricane_id number not null, hurricane_data_id integer primary key, 
-    record_identifier string, system_status string);
+    record_identifier string, system_status string);'
 */
 
 export async function writeHurricane(cyclone_number, hurricane_name, db_conn) {
