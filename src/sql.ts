@@ -35,15 +35,28 @@ export async function writeHurricaneData(data, db_conn) {
 
 export async function getHurricanes(db_conn) {
   const sql = 'select * from hurricanes;'
-  let results = null
-  await db_conn.all(sql, function(err, result) {
-      if (err) {
-        console.log("a catastrophic error: ", err)
-        console.log("the erring sql: ", sql)
-      } else {
-        console.log(results)
-        results = result
-      }
-    })
-    return results
+  return new Promise((resolve, reject) => {
+    db_conn.all(sql, function(err, result) {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(result)
+          }
+        })
+
+  }) as unknown as { hurricane_id: string, name: string }[]
+}
+
+export async function getHurricaneData(hurricane_id, db_conn) {
+  const sql = `select * from hurricane_data where hurricane_id="${hurricane_id}";`
+  return new Promise((resolve, reject) => {
+    db_conn.all(sql, function(err, result) {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(result)
+          }
+        })
+
+  }) as unknown as any[]
 }
