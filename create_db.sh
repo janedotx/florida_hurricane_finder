@@ -1,6 +1,6 @@
 #! /usr/bin/env sh
 
-sqlite3 new_instance.db 'CREATE TABLE hurricanes 
+sqlite3 $DB 'CREATE TABLE hurricanes 
   (hurricane_id string primary key, name string);
   CREATE TABLE hurricane_data(date string, time string, 
     longitude number, latitude number, wind number, 

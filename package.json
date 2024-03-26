@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "load_db": "pnpm ts-node "
+    "create_db": "/bin/sh create_db.sh",
+    "load_db": "pnpm ts-node src/parse.ts",
+    "write_hurricanes": "pnpm ts-node src/findLandfall.ts"
   },
   "keywords": [],
   "author": "",

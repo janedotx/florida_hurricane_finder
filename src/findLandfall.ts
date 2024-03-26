@@ -42,37 +42,38 @@ function checkPoint(x, y, shape: number[][][]) {
   return !!turf.intersect(cycloneCenter, shapePoly)
 }
 
+/* Check the coordinate against every shape.
+  Return as soon as we find a shape
+  Don't care about holes. If a point is inside a shape,
+  it doesn't matter if it is inside a hole in the shape.
+*/
 function checkShapes(x, y, shapes) {
-  // return as soon as we find a shape
-  // don't care about holes
-  let shapeFound 
   return !!shapes.find(shape => {
-    if (checkPoint(x, y, shape)) {
-      shapeFound = shape
-      return true
-    }
-    return false
+    return (checkPoint(x, y, shape)) 
   }) 
 }
-// main()
 
+/* See if a hurricane is inside Florida by comparing the
+  lat/lng to every shape that Florida comprises. If the
+  point is inside even a single shape, it is considered
+  to have made landfall. 
+*/
 async function checkHurricane(hurricane_id, shapes: number[][][], db_conn: sqlite3.Database) {
   const rows = await getHurricaneData(hurricane_id, db_conn)
-  const res = rows.find(row => {
+  return rows.find(row => {
     const { longitude, latitude } = row
     return checkShapes(Number(latitude), Number(longitude), shapes)
   })
-  if (res) {
-    console.log('lat: ', res.latitude)
-    console.log('lng: ', res.longitude)
-  }
-  return res
 }
 
+// Finds the hurricanes and writes the data to a csv file.
 async function findLandfall() {
+  console.log("Finding landfalls now...")
+  console.log("Loading Florida GeoJSON file...")
   const geojson = loadFloridaGeoJSON()
   const shapes: number[][][] = geojson.features[0].geometry.coordinates
-  const db_conn = await new sqlite3.Database('./hurdat.db')
+  const db_conn = await new sqlite3.Database(process.env.DB)
+  console.log("Retrieving hurricane data since 1900...")
   const hurricanes: { hurricane_id: string, name: string }[] = await getHurricanes(db_conn) 
   const hurricanes_1900 = hurricanes.filter(hurricane => {
     const { hurricane_id } = hurricane
@@ -80,6 +81,7 @@ async function findLandfall() {
     return (hurricane_year >= 1900)   
   })
 
+  console.log("Checking hurricane locations against Florida GeoJSON boundary...")
   const promises = hurricanes_1900.map(async (hurricane) => {
     const { hurricane_id } = hurricane 
     const result = await checkHurricane(hurricane_id, shapes, db_conn)
@@ -97,6 +99,7 @@ async function findLandfall() {
   return florida_hurricanes
 }
 
+// Find hurricnaes that made landfall in Florida and write results to a .csv
 async function writeFloridaHurricanes() {
   const results = await findLandfall()
 
@@ -113,30 +116,15 @@ async function writeFloridaHurricanes() {
     const landfallMin = tString.slice(2, 4)
     return `${hurricane.hurricane_id},${hurricane.name},${landfallYear}-${landfallMonth}-${landfallDay},${landfallHour}:${landfallMin},${maxWind}`
   })
+  const outputPath = process.env.OUTPUT_PATH
 
-  fs.writeFileSync('florida_hurricanes.csv','cyclone_number,name,landfall-YYYY-MM-DD,landfall-HH:MM,wind')
-    fs.writeFileSync('florida_hurricanes.csv', "\n", { encoding:'utf8', flag: 'as+' } )
+  console.log("Beginning process of writing data to .csv...")
+  fs.writeFileSync(outputPath,'cyclone_number,name,landfall-YYYY-MM-DD,landfall-HH:MM,wind')
+  fs.writeFileSync(outputPath, "\n", { encoding:'utf8', flag: 'as+' } )
 
   lines.forEach(line => {
-    fs.writeFileSync('florida_hurricanes.csv', line + "\n", { encoding:'utf8', flag: 'as+' } )
+    fs.writeFileSync(outputPath, line + "\n", { encoding:'utf8', flag: 'as+' } )
   })
 }
 
-//console.log(checkShapes(-80.2, 25.5, shapes))
-
-writeFloridaHurricanes().then(results => console.log(results)).catch(e => console.log(e))
-
-async function wrapper() {
-
-  const geojson = loadFloridaGeoJSON()
-  const shapes: number[][][] = geojson.features[0].geometry.coordinates
-  const db_conn = await new sqlite3.Database('./hurdat.db')
-  const res = await checkHurricane('AL101959', shapes, db_conn)
-  
-  console.log(res)
-
-  const res2 = await getMaxWindSpeed('AL101959', db_conn)
-  console.log('max wind: ', res2['max(wind)'])
-}
-
-// wrapper().then(w => console.log(w)).catch(e => console.log(e))
+writeFloridaHurricanes().then(results => console.log("done")).catch(e => console.log(e))
