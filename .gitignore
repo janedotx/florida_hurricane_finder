@@ -1,2 +1,4 @@
 node_modules/
 hurdat2.db
+*.sw*
+.DS_STORE

@@ -27,7 +27,7 @@ function checkPoint(x, y, shape: number[][][]) {
   // Initially, I looked up the average width of the eye of a hurricane and used that,
   // but then I caught a few hurricanes that were very close to Florida but
   // that the NOAA did not consider to have made landfall.
-  const toleranceRadius = 0.035
+  const toleranceRadius = 0.02
   const toleranceBox = [[
     [x - toleranceRadius, y + toleranceRadius],
     [x + toleranceRadius, y + toleranceRadius],
@@ -114,12 +114,12 @@ async function writeFloridaHurricanes() {
     const landfallDay = dString.slice(6, 8)
     const landfallHour = tString.slice(0, 2)
     const landfallMin = tString.slice(2, 4)
-    return `${hurricane.hurricane_id},${hurricane.name},${landfallYear}-${landfallMonth}-${landfallDay},${landfallHour}:${landfallMin},${maxWind}`
+    return `${hurricane.hurricane_id},${hurricane.name},${landfallYear}:${landfallMonth}:${landfallDay}:${landfallHour}:${landfallMin},${maxWind}`
   })
   const outputPath = process.env.OUTPUT_PATH
 
   console.log("Beginning process of writing data to .csv...")
-  fs.writeFileSync(outputPath,'cyclone_number,name,landfall-YYYY-MM-DD,landfall-HH:MM,wind')
+  fs.writeFileSync(outputPath,'cyclone_number,name,landfall-YYYY:MM:DD:HH:MM,wind')
   fs.writeFileSync(outputPath, "\n", { encoding:'utf8', flag: 'as+' } )
 
   lines.forEach(line => {
