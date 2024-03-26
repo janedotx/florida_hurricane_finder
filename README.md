@@ -29,3 +29,4 @@ To accomplish this coastline check, I downloaded a GeoJSON file from https://git
 3. Support emitting data to other file formats.
 4. Add an automated test suite.
 5. Throw the whole thing out and rewrite in a language that supports multiple threads. The checks for each hurricane are expensive and the main bottleneck probably and Node/TS may not the best fit for this problem. 
+6. Use this Florida GeoJSON from the Florida Fish and Wildlife Commission instead: https://geodata.myfwc.com/datasets/myfwc::florida-shoreline-1-to-40000-scale/explore?location=27.438860%2C-82.763397%2C10.39
